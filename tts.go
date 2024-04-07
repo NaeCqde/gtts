@@ -30,9 +30,7 @@ func GetAudio(text string, voiceType VoiceType) (*dca.EncodeSession, error) {
 	var audioURL string
 
 	if voiceType == 0 {
-		escapedText := url.QueryEscape(text)
-
-		audioURL = fmt.Sprintf("https://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&client=tw-ob&tl=%v&textlen=%v&q=%v", "ja", textLen, escapedText)
+		audioURL = fmt.Sprintf("https://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&client=tw-ob&tl=%v&textlen=%v&q=%v", "ja", textLen, url.QueryEscape(text))
 
 		if textLen > 100 {
 			options.AudioFilter = "atempo=2.4"
