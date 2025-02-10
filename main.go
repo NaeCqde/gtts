@@ -13,27 +13,19 @@ import (
 
 func main() {
 	slog.Info("Start")
+	LoadEnv()
 
-	err := LoadEnv()
-
+	err := LoadVoiceSettings()
 	if err != nil {
 		panic(err)
 	}
 
-	err = LoadVoiceSettings()
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = LoadBlackLists()
-
+	err = LoadBlockList()
 	if err != nil {
 		panic(err)
 	}
 
 	bot, err := disgolf.New(GetToken())
-
 	if err != nil {
 		panic(err)
 	}
@@ -62,9 +54,9 @@ func main() {
 	})
 
 	bot.Router.Register(&disgolf.Command{
-		Name:               "blacklist",
+		Name:               "bocklist",
 		Description:        "グローバルで読み上げさせないユーザーを管理します",
-		MessageHandler:     disgolf.MessageHandlerFunc(HandleBlackLists),
+		MessageHandler:     disgolf.MessageHandlerFunc(HandleBlockLists),
 		MessageMiddlewares: []disgolf.MessageHandler{disgolf.MessageHandlerFunc(HasOwnerMiddleware), disgolf.MessageHandlerFunc(IgnoreSelfMiddleware)},
 	})
 
@@ -85,13 +77,11 @@ func main() {
 	}
 
 	stopBot := make(chan os.Signal, 1)
-
 	signal.Notify(stopBot, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
 	<-stopBot
 
 	err = bot.Close()
-
 	if err != nil {
 		panic(err)
 	}
