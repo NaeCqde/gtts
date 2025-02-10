@@ -9,7 +9,7 @@ import (
 
 var (
 	VoiceSettings = VoiceSettingMap{}
-	BlackList     []string
+	BlockList     []string
 )
 
 func LoadEnv() error {
@@ -36,24 +36,24 @@ func SaveVoiceSettings() error {
 	return os.WriteFile("voice_settings.json", data, os.ModePerm)
 }
 
-func LoadBlackLists() error {
-	body, err := os.ReadFile("blacklists.json")
+func LoadBlockList() error {
+	body, err := os.ReadFile("blocklist.json")
 
 	if err != nil {
 		return err
 	}
 
-	return gojson.Unmarshal(body, &BlackList)
+	return gojson.Unmarshal(body, &BlockList)
 }
 
-func SaveBlackLists() error {
-	data, err := gojson.Marshal(BlackList)
+func SaveBlockLists() error {
+	data, err := gojson.Marshal(BlockList)
 
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile("blacklists.json", data, os.ModePerm)
+	return os.WriteFile("blocklists.json", data, os.ModePerm)
 }
 
 func GetToken() string {

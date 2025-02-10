@@ -1,0 +1,11 @@
+services:
+    gtts:
+        container_name: gtts
+        restart: unless-stopped
+        env_file: .env
+        build:
+            context: .
+            dockerfile: Dockerfile
+        volumes:
+            - "./blocklist.json:/app/blocklist.json"
+            - "./voice_settings.json:/app/voice_settings.json"

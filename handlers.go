@@ -38,7 +38,7 @@ func IgnoreSelfMiddleware(ctx *disgolf.MessageCtx) {
 }
 
 func IgnoreBlackListedUser(ctx *disgolf.MessageCtx) {
-	if !slices.Contains(BlackList, ctx.Message.Author.ID) {
+	if !slices.Contains(BlockList, ctx.Message.Author.ID) {
 		ctx.Next()
 	}
 }
@@ -79,7 +79,7 @@ func HandleVCJoin(ctx *disgolf.MessageCtx) {
 		return
 	}
 
-	conn, err := ctx.ChannelVoiceJoin(ctx.Message.GuildID, voiceChannelID, false, true)
+	conn, err := ctx.ChannelVoiceJoin(ctx.Message.GuildID, voiceChannelID, false, false)
 
 	if err != nil {
 		slog.Error(err.Error())
@@ -132,11 +132,11 @@ func HandleVoiceSetting(ctx *disgolf.MessageCtx) {
 	}
 }
 
-func HandleBlackLists(ctx *disgolf.MessageCtx) {
+func HandleBlockLists(ctx *disgolf.MessageCtx) {
 	if len(ctx.Arguments) < 2 {
 		text := "ブラックリスト\n\n"
 
-		for _, id := range BlackList {
+		for _, id := range BlockList {
 			user, _ := ctx.User(id)
 
 			if user.ID != "" {
@@ -162,12 +162,12 @@ func HandleBlackLists(ctx *disgolf.MessageCtx) {
 					return
 				}
 
-				if slices.Contains(BlackList, text) {
+				if slices.Contains(BlockList, text) {
 					ctx.Reply(fmt.Sprintf("%vは既にブラックリストに追加されています", text), false)
 				} else {
-					BlackList = append(BlackList, text)
+					BlockList = append(BlockList, text)
 
-					SaveBlackLists()
+					SaveBlockLists()
 
 					ctx.Reply(fmt.Sprintf("%vをブラックリストに追加しました", text), false)
 				}
@@ -185,15 +185,15 @@ func HandleBlackLists(ctx *disgolf.MessageCtx) {
 					return
 				}
 
-				if slices.Contains(BlackList, text) {
-					for i, id := range BlackList {
+				if slices.Contains(BlockList, text) {
+					for i, id := range BlockList {
 						if id == text {
-							BlackList = append(BlackList[:i], BlackList[i+1:]...)
+							BlockList = append(BlockList[:i], BlockList[i+1:]...)
 							break
 						}
 					}
 
-					SaveBlackLists()
+					SaveBlockLists()
 
 					ctx.Reply(fmt.Sprintf("%vをブラックリストから削除しました", text), false)
 				} else {
@@ -236,7 +236,7 @@ func HandleMessages(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	//fmt.Println(m.Content)
 
-	if m.Author.ID == s.State.User.ID || m.Author.Bot || strings.HasPrefix(m.Content, GetPrefix()) || strings.HasPrefix(m.Content, "voice") || strings.HasPrefix(m.Content, ";") || len(BotPrefixesPattern.FindStringIndex(m.Content)) != 0 || slices.Contains(BlackList, m.Author.ID) {
+	if m.Author.ID == s.State.User.ID || m.Author.Bot || strings.HasPrefix(m.Content, GetPrefix()) || strings.HasPrefix(m.Content, ";") || len(BotPrefixesPattern.FindStringIndex(m.Content)) != 0 || slices.Contains(BlockList, m.Author.ID) {
 		return
 	}
 
@@ -329,7 +329,7 @@ func HandleMessages(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func HandleVoiceUpdates(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
-	if m.Member.User.ID == s.State.User.ID || m.Member.User.Bot || slices.Contains(BlackList, m.UserID) {
+	if m.Member.User.ID == s.State.User.ID || m.Member.User.Bot || slices.Contains(BlockList, m.UserID) {
 		return
 	}
 

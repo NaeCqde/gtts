@@ -29,19 +29,25 @@ func GetAudio(text string, voiceType VoiceType) (*dca.EncodeSession, error) {
 
 	var audioURL string
 
+	options.AudioFilter = "volume=-20dB;"
+
 	if voiceType == 0 {
-		audioURL = fmt.Sprintf("https://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&client=tw-ob&tl=%v&textlen=%v&q=%v", "ja", textLen, url.QueryEscape(text))
+		audioURL = fmt.Sprintf(
+			"https://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&client=tw-ob&tl=%s&q=%s&textlen=%d",
+			"ja",
+			url.QueryEscape(text),
+			textLen,
+		)
 
 		if textLen > 100 {
-			options.AudioFilter = "atempo=2.4"
+			options.AudioFilter += "atempo=2.4"
 		} else if textLen > 50 {
-			options.AudioFilter = "atempo=1.8"
+			options.AudioFilter += "atempo=1.8"
 		} else {
-			options.AudioFilter = "atempo=1.2"
+			options.AudioFilter += "atempo=1.2"
 		}
 	} else {
 		speed := 1.2
-
 		if textLen > 90 {
 			speed = 2.4
 		} else if textLen > 50 {
@@ -52,7 +58,7 @@ func GetAudio(text string, voiceType VoiceType) (*dca.EncodeSession, error) {
 			"speaker_id": {strconv.Itoa(voiceType)},
 			"text":       {text},
 			"ext":        {"ogg"},
-			"volume":     {"1.0"},
+			"volume":     {"1.2"},
 			"speed":      {strconv.FormatFloat(speed, 'f', -1, 64)},
 			"pitch":      {"1.0"},
 			"range":      {"1.0"},
@@ -99,7 +105,6 @@ func GetAudio(text string, voiceType VoiceType) (*dca.EncodeSession, error) {
 			return &dca.EncodeSession{}, fmt.Errorf("無音検出の結果の取得に失敗しました")
 		}
 
-		options.AudioFilter = "volume=10dB"
 		options.StartTime = strconv.FormatFloat(startTime, 'f', -1, 64)
 
 		if speed == 2.4 {

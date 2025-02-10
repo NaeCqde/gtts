@@ -21,7 +21,7 @@ type VoiceManager struct {
 	GuildID string
 	Queue   *Queue
 	Stream  *dca.EncodeSession
-	Stoped  bool
+	Stopped bool
 }
 
 func (m *VoiceManager) Play(texts []string, author *discordgo.User) {
@@ -37,7 +37,7 @@ func (m *VoiceManager) Play(texts []string, author *discordgo.User) {
 
 	m.Queue.Add(last, author, true)
 
-	m.work()
+	go m.work()
 }
 
 func (m *VoiceManager) Skip() {
@@ -50,7 +50,7 @@ func (m *VoiceManager) Skip() {
 }
 
 func (m *VoiceManager) Leave() {
-	m.Stoped = true
+	m.Stopped = true
 
 	m.Conn.Disconnect()
 
@@ -71,37 +71,48 @@ func (m *VoiceManager) work() {
 
 		var isLast bool
 
-		for {
-			if m.Stoped {
+		for len(m.Queue.List) != 0 {
+			if m.Stopped {
 				return
 			}
 
-			if len(m.Queue.List) != 0 {
-				now := m.Queue.List[0]
+			now := m.Queue.List[0]
 
-				isLast = now.IsLast
-				m.Stream = now.Audio
+			isLast = now.IsLast
+			m.Stream = now.Audio
 
-				done := make(chan error)
+			done := make(chan error)
 
-				dca.NewStream(m.Stream, m.Conn, done)
+			dca.NewStream(m.Stream, m.Conn, done)
 
-				<-done
+			<-done
 
-				m.Queue.Delete(1)
-
-				m.Stream.Cleanup()
-			}
+			m.Queue.Delete(1)
+			m.Stream.Cleanup()
 
 			if isLast {
 				time.Sleep(time.Duration(time.Millisecond * 10))
 			}
 		}
+
+		m.Queue.IsWorking = false
 	}
 }
 
-func NewManager(conn *discordgo.VoiceConnection, guildID string, textChannel *discordgo.Channel, voiceChannel *discordgo.Channel) (*VoiceManager, error) {
-	instance := &VoiceManager{Conn: conn, Channel: ChannelProps{Text: textChannel, Voice: voiceChannel}, GuildID: guildID, Queue: &Queue{IsWorking: false}}
+func NewManager(
+	conn *discordgo.VoiceConnection,
+	guildID string, textChannel *discordgo.Channel,
+	voiceChannel *discordgo.Channel,
+) (*VoiceManager, error) {
+	instance := &VoiceManager{
+		Conn: conn,
+		Channel: ChannelProps{
+			Text:  textChannel,
+			Voice: voiceChannel,
+		},
+		GuildID: guildID,
+		Queue:   &Queue{IsWorking: false},
+	}
 
 	Instances = append(Instances, instance)
 
