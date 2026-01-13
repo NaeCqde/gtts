@@ -17,8 +17,12 @@ func GetInvite(inviteCode string) (string, error) {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return "", errors.New("discord ratelimited or error")
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return "", errors.New("discord ratelimited")
+	}
+
+		if resp.StatusCode != http.StatusOK {
+		return "", errors.New("discord error")
 	}
 
 	body, err := io.ReadAll(resp.Body)

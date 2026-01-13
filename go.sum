@@ -1,5 +1,9 @@
 github.com/FedorLap2006/disgolf v0.0.0-20221004200601-99cfc3d9a0e1 h1:P9cjtUVwQxRzPrcbrCaAY0nq0cJVHe8xF13JYHiCmgk=
 github.com/FedorLap2006/disgolf v0.0.0-20221004200601-99cfc3d9a0e1/go.mod h1:/QcQehHqBqqeqWzGrSiRR7iT3pjKph2+h0iEjDij4RQ=
+github.com/NaeCqde/dca v0.0.0-20251007184203-c569c9368d38 h1:OakSg3vwgZQKoE7Ze4So7sq41RlQYTzwCOJEQzzvFL4=
+github.com/NaeCqde/dca v0.0.0-20251007184203-c569c9368d38/go.mod h1:EpQKeti2TVS2GaM+vqlhcc7PLK0WvCDty3A8gWsuQlY=
+github.com/NaeCqde/disgolf v0.0.0-20251006093216-68255c69d3a6 h1:/3DYFrjlW7vw4p1Mtuzo655TZoeeCKbjw0WNLRIQEh4=
+github.com/NaeCqde/disgolf v0.0.0-20251006093216-68255c69d3a6/go.mod h1:5m1VReCmGzmKXxzZ7Y0oWaQdjm5xRSkihO1fBQ7OgAo=
 github.com/bwmarrin/discordgo v0.26.1/go.mod h1:NJZpH+1AfhIcyQsPeuBKsUtYrRnjkyu0kIVMCHkZtRY=
 github.com/bwmarrin/discordgo v0.27.1 h1:ib9AIc/dom1E/fSIulrBwnez0CToJE113ZGt4HoliGY=
 github.com/bwmarrin/discordgo v0.27.1/go.mod h1:NJZpH+1AfhIcyQsPeuBKsUtYrRnjkyu0kIVMCHkZtRY=

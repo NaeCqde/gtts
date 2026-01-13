@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
+	"github.com/NaeCqde/dca"
 	"github.com/bwmarrin/discordgo"
-	"local.packages/dca"
 )
 
 var Instances = []*VoiceManager{}
@@ -37,14 +38,15 @@ func (m *VoiceManager) Play(texts []string, author *discordgo.User) {
 
 	m.Queue.Add(last, author, true)
 
-	go m.work()
+	if !m.Queue.IsWorking {
+		go m.work()
+	}
 }
 
 func (m *VoiceManager) Skip() {
 	m.Queue.Delete(len(m.Queue.List))
 
 	if m.Stream != nil {
-		m.Stream.Stop()
 		m.Stream.Cleanup()
 	}
 }
@@ -66,37 +68,35 @@ func (m *VoiceManager) Leave() {
 }
 
 func (m *VoiceManager) work() {
-	if !m.Queue.IsWorking {
-		m.Queue.IsWorking = true
+	m.Queue.IsWorking = true
 
-		var isLast bool
-
-		for len(m.Queue.List) != 0 {
-			if m.Stopped {
-				return
-			}
-
-			now := m.Queue.List[0]
-
-			isLast = now.IsLast
-			m.Stream = now.Audio
-
-			done := make(chan error)
-
-			dca.NewStream(m.Stream, m.Conn, done)
-
-			<-done
-
-			m.Queue.Delete(1)
-			m.Stream.Cleanup()
-
-			if isLast {
-				time.Sleep(time.Duration(time.Millisecond * 10))
-			}
+	for len(m.Queue.List) != 0 {
+		if m.Stopped {
+			m.Queue.IsWorking = false
+			return
 		}
 
-		m.Queue.IsWorking = false
+		now := m.Queue.List[0]
+
+		m.Stream = now.Audio
+		done := make(chan error)
+
+		dca.NewStream(m.Stream, m.Conn, done)
+
+		err := <-done
+		if err != nil {
+			slog.Error(err.Error())
+		}
+
+		m.Queue.Delete(1)
+		m.Stream.Cleanup()
+
+		if now.IsPartLast {
+			time.Sleep(time.Duration(time.Millisecond * 10))
+		}
 	}
+
+	m.Queue.IsWorking = false
 }
 
 func NewManager(

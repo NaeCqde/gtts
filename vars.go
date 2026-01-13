@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	VoiceSettings = VoiceSettingMap{}
+	VoiceSettings = map[string]VoiceSetting{}
 	BlockList     []string
 )
 

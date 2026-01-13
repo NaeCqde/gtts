@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"local.packages/dca"
+	"github.com/NaeCqde/dca"
 )
 
 var (
@@ -79,7 +79,7 @@ func GetAudio(text string, voiceType VoiceType) (*dca.EncodeSession, error) {
 			return &dca.EncodeSession{}, err
 		}
 
-		audioURL = "https:" + strings.Replace(strings.Replace(strings.Replace(string(body), "\\", "", -1), `callback({"url":"`, "", 1), `"})`, "", 1)
+		audioURL = "https:" + strings.Replace(strings.Replace(strings.ReplaceAll(string(body), "\\", ""), `callback({"url":"`, "", 1), `"})`, "", 1)
 
 		if strings.Contains(audioURL, "合成失敗") || audioURL == "https:" {
 			return &dca.EncodeSession{}, fmt.Errorf("音声合成に失敗")
@@ -105,12 +105,14 @@ func GetAudio(text string, voiceType VoiceType) (*dca.EncodeSession, error) {
 			return &dca.EncodeSession{}, fmt.Errorf("無音検出の結果の取得に失敗しました")
 		}
 
-		options.StartTime = strconv.FormatFloat(startTime, 'f', -1, 64)
-
-		if speed == 2.4 {
-			options.StartTime = strconv.FormatFloat(startTime/2.4, 'f', -1, 64)
-		} else if speed == 1.8 {
-			options.StartTime = strconv.FormatFloat(startTime/1.8, 'f', -1, 64)
+		switch speed {
+		case speed:
+			// default
+			options.StartTime = startTime
+		case 2.4:
+			options.StartTime = startTime / 2.4
+		case 1.8:
+			options.StartTime = startTime / 1.8
 		}
 	}
 

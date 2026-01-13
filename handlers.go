@@ -9,19 +9,20 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/NaeCqde/disgolf"
 	"github.com/bwmarrin/discordgo"
-	"local.packages/disgolf"
 )
 
 var (
-	EmojiPattern         = regexp.MustCompile(`(?m)<:(\w+):\d+>`)
-	DiscordFilePattern   = regexp.MustCompile(`(?m)https?://(?:cdn|media).discord(?:app)?.(?:com|net)?/attachments/\d+/\d+/([\w\d\.-]+)(?:\?.+)?`)
-	LinkPattern          = regexp.MustCompile(`(?mi)https?://(?:www\.)?([-a-z0-9@:%._\+~#=]{1,256}\.[a-z0-9()]{1,6}\b)(?:[-a-z0-9()!@:%_\+.~#?&//=]*)`)
-	DiscordInvitePattern = regexp.MustCompile(`(?mi)(?:https?://)?(?:\w+\.)?discord\.(?:com/invite/|gg/)([a-z\d-]+)`)
-	DuplicatedPattern    = regexp.MustCompile(`(?mi)([!！]{3,}|[\?？]{3,}|[wｗ]{3,}|[-ー]{3,}|[_＿]{3,}|[\^|＾]{3,})`)
-	CodeBlockPattern     = regexp.MustCompile(`(?ms)\x60\x60\x60.*\x60\x60\x60`)
-	ExcludePattern       = regexp.MustCompile(`(?m)\*`)
-	BotPrefixesPattern   = regexp.MustCompile(`^\w{0,2}[!"#$%&'\*\+,\./;<=>?~]{1,2}\w+\s*(?:[\w[:punct:]]+\s*)*`)
+	BotPrefixesPattern    = regexp.MustCompile(`^\w{0,2}[!"#$%&'\*\+,\./;<=>?~]{1,2}\w+\s*(?:[\w[:punct:]]+\s*)*`)
+	ChannelMentionPattern = regexp.MustCompile(`(?m)<#(\d+)>|https://(?:[A-Za-z]+\.)?discord.com/channels/\d+/(\d+)`)
+	CodeBlockPattern      = regexp.MustCompile(`(?ms)\x60\x60\x60.*\x60\x60\x60`)
+	DiscordFilePattern    = regexp.MustCompile(`(?m)https?://(?:cdn|media).discord(?:app)?.(?:com|net)?/attachments/\d+/\d+/([\w\d\.-]+)(?:\?.+)?`)
+	DiscordInvitePattern  = regexp.MustCompile(`(?mi)(?:https?://)?(?:\w+\.)?discord\.(?:com/invite/|gg/)([a-z\d-]+)`)
+	DuplicatedPattern     = regexp.MustCompile(`(?mi)([!！]{3,}|[\?？]{3,}|[wｗ]{3,}|[-ー]{3,}|[_＿]{3,}|[\^|＾]{3,})`)
+	EmojiPattern          = regexp.MustCompile(`(?m)<:(\w+):\d+>`)
+	ExcludePattern        = regexp.MustCompile(`(?m)\*`)
+	LinkPattern           = regexp.MustCompile(`(?mi)https?://(?:www\.)?([-a-z0-9@:%._\+~#=]{1,256}\.[a-z0-9()]{1,6}\b)(?:[-a-z0-9()!@:%_\+.~#?&//=]*)`)
 )
 
 func HasOwnerMiddleware(ctx *disgolf.MessageCtx) {
@@ -44,6 +45,7 @@ func IgnoreBlackListedUser(ctx *disgolf.MessageCtx) {
 }
 
 func HandleVCJoin(ctx *disgolf.MessageCtx) {
+	// 読み上げ先チャンネルを取得
 	textChannel, err := ctx.Channel(ctx.Message.ChannelID)
 
 	if err != nil {
@@ -51,12 +53,22 @@ func HandleVCJoin(ctx *disgolf.MessageCtx) {
 		return
 	}
 
+	// 接続済みのボイスチャンネルがあるか確認
 	voiceManager, err := GetManager(ctx.Message.GuildID)
+	var voiceChannelID string
 
-	voiceChannelID := "0"
+	var mentionChannels []string
+	matches := ChannelMentionPattern.FindAllStringSubmatch(ctx.Message.Content, -1)
+	for _, v := range matches {
+		if strings.HasPrefix(v[0], "<#") {
+			mentionChannels = append(mentionChannels, v[1])
+		} else {
+			mentionChannels = append(mentionChannels, v[2])
+		}
+	}
 
-	if len(ctx.Message.MentionChannels) != 0 {
-		voiceChannelID = ctx.Message.MentionChannels[0].ID
+	if len(mentionChannels) != 0 {
+		voiceChannelID = mentionChannels[0]
 	} else {
 		for _, g := range ctx.State.Guilds {
 			for _, v := range g.VoiceStates {
@@ -65,6 +77,11 @@ func HandleVCJoin(ctx *disgolf.MessageCtx) {
 				}
 			}
 		}
+	}
+
+	if voiceChannelID == "" {
+		slog.Error("voice channel is not selected")
+		return
 	}
 
 	if err == nil && voiceManager.Channel.Voice.ID != voiceChannelID {
