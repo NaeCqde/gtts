@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/NaeCqde/disgolf"
 	"github.com/bwmarrin/discordgo"
-	"local.packages/disgolf"
 )
 
 func main() {

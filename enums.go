@@ -56,5 +56,3 @@ var (
 type VoiceSetting struct {
 	VoiceType VoiceType `json:"voice_type"`
 }
-
-type VoiceSettingMap map[string]VoiceSetting

@@ -11,7 +11,7 @@ type Queue struct {
 	IsWorking bool
 }
 
-func (q *Queue) Add(text string, author *discordgo.User, isLast bool) {
+func (q *Queue) Add(text string, author *discordgo.User, isPartLast bool) {
 	var voiceType VoiceType = 1209
 
 	if setting, ok := VoiceSettings[author.ID]; ok {
@@ -25,10 +25,10 @@ func (q *Queue) Add(text string, author *discordgo.User, isLast bool) {
 	}
 
 	now := Now{
-		Text:   text,
-		Author: author,
-		Audio:  audio,
-		IsLast: isLast,
+		Text:       text,
+		Author:     author,
+		Audio:      audio,
+		IsPartLast: isPartLast,
 	}
 
 	q.List = append(q.List, now)
