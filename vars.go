@@ -33,7 +33,7 @@ func SaveVoiceSettings() error {
 		return err
 	}
 
-	return os.WriteFile("voice_settings.json", data, os.ModePerm)
+	return os.WriteFile("voice_settings.json", data, 0o600)
 }
 
 func LoadBlockList() error {
@@ -53,7 +53,7 @@ func SaveBlockLists() error {
 		return err
 	}
 
-	return os.WriteFile("blocklists.json", data, os.ModePerm)
+	return os.WriteFile("blocklists.json", data, 0o600)
 }
 
 func GetToken() string {
