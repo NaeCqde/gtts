@@ -4,12 +4,13 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 
 	gojson "github.com/goccy/go-json"
 )
 
 func GetInvite(inviteCode string) (string, error) {
-	resp, err := http.Get("https://discord-invite.naecqde.workers.dev/" + inviteCode)
+	resp, err := http.Get("https://discord-invite.naecqde.workers.dev/" + url.PathEscape(inviteCode))
 
 	if err != nil {
 		return "", err
@@ -39,5 +40,15 @@ func GetInvite(inviteCode string) (string, error) {
 		return "", err
 	}
 
-	return data["guild"].(map[string]any)["name"].(string), nil
+	guild, ok := data["guild"].(map[string]any)
+	if !ok {
+		return "", errors.New("unexpected invite response")
+	}
+
+	name, ok := guild["name"].(string)
+	if !ok {
+		return "", errors.New("unexpected invite response")
+	}
+
+	return name, nil
 }

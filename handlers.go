@@ -223,34 +223,6 @@ func HandleBlockLists(ctx *disgolf.MessageCtx) {
 }
 
 func HandleMessages(s *discordgo.Session, m *discordgo.MessageCreate) {
-	/*if m.GuildID == "1006903965180510330" {
-		content, err := m.ContentWithMoreMentionsReplaced(s)
-
-		if err == nil {
-			channel, err := s.Channel(m.ChannelID)
-
-			if err == nil {
-				var files []*discordgo.File
-
-				for _, attach := range m.Message.Attachments {
-					res, err := http.Get(attach.URL)
-
-					if err == nil {
-						file := &discordgo.File{Name: attach.Filename, ContentType: attach.ContentType, Reader: res.Body}
-						files = append(files, file)
-					}
-				}
-
-				s.WebhookExecute("1121370697248288839", "7YBvLYen1Io2hQhBwjRHrq_uh7Le7VPB1PuhiYGBg58QiogOrwOAU9nMSY0zTbAUz5-o", false, &discordgo.WebhookParams{Content: content, Username: fmt.Sprintf("#%v | %v#%v (%v)", channel.Name, m.Author.Username, m.Author.Discriminator, m.Author.ID), AvatarURL: m.Author.AvatarURL(""), Files: files, AllowedMentions: &discordgo.MessageAllowedMentions{}})
-			}
-		}
-	}
-
-	if m.ChannelID == "1089542986771218454" {
-		fmt.Println(m.Content)
-		fmt.Println(BotPrefixesPattern.FindStringIndex(m.Content))
-	}*/
-
 	//fmt.Println(m.Content)
 
 	if m.Author.ID == s.State.User.ID || m.Author.Bot || strings.HasPrefix(m.Content, GetPrefix()) || strings.HasPrefix(m.Content, ";") || len(BotPrefixesPattern.FindStringIndex(m.Content)) != 0 || slices.Contains(BlockList, m.Author.ID) {
