@@ -73,7 +73,7 @@ func GetAudio(text string, voiceType VoiceType) (*dca.EncodeSession, error) {
 
 		defer resp.Body.Close()
 
-		body, err := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 
 		if err != nil {
 			return &dca.EncodeSession{}, err
@@ -81,11 +81,15 @@ func GetAudio(text string, voiceType VoiceType) (*dca.EncodeSession, error) {
 
 		audioURL = "https:" + strings.Replace(strings.Replace(strings.ReplaceAll(string(body), "\\", ""), `callback({"url":"`, "", 1), `"})`, "", 1)
 
+		if u, perr := url.Parse(audioURL); perr != nil || u.Scheme != "https" || u.Host == "" || strings.HasPrefix(audioURL, "https:-") {
+			return &dca.EncodeSession{}, fmt.Errorf("音声合成に失敗")
+		}
+
 		if strings.Contains(audioURL, "合成失敗") || audioURL == "https:" {
 			return &dca.EncodeSession{}, fmt.Errorf("音声合成に失敗")
 		}
 
-		ffmpeg := exec.Command("ffmpeg", "-i", audioURL, "-af", "silencedetect=n=-90dB:d=0.7", "-f", "null", "-")
+		ffmpeg := exec.Command("ffmpeg", "-protocol_whitelist", "https,tls,tcp", "-i", audioURL, "-af", "silencedetect=n=-90dB:d=0.7", "-f", "null", "-")
 
 		stderr, err := ffmpeg.CombinedOutput()
 

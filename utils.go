@@ -25,7 +25,7 @@ func GetInvite(inviteCode string) (string, error) {
 		return "", errors.New("discord error")
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 
 	if err != nil {
 		return "", err
@@ -39,5 +39,15 @@ func GetInvite(inviteCode string) (string, error) {
 		return "", err
 	}
 
-	return data["guild"].(map[string]any)["name"].(string), nil
+	guild, ok := data["guild"].(map[string]any)
+	if !ok {
+		return "", errors.New("discord error")
+	}
+
+	name, ok := guild["name"].(string)
+	if !ok {
+		return "", errors.New("discord error")
+	}
+
+	return name, nil
 }
