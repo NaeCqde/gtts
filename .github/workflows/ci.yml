@@ -1,0 +1,99 @@
+name: ci
+
+# Every job runs on every push and pull request: the build of the executable for every platform, the archive of each, and
+# the release. A version tag (`git tag v0.1.0 && git push --tags`), or a run started by hand from the Actions tab with a tag
+# name, makes the release of that tag. Any other push updates the pre-release `latest` (its tag moves to the pushed commit).
+# A pull request does not publish anything.
+on:
+    push:
+        branches: ["**"]
+        tags:
+            - "v*"
+    pull_request:
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: "Tag of the release to create (made from the selected branch if it does not exist)"
+                required: true
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    package:
+        name: Build - ${{ matrix.platform.os-name }}
+        strategy:
+            fail-fast: false
+            matrix:
+                platform:
+                    - {os-name: macOS-aarch64, goos: darwin, goarch: arm64, ext: "", zip: false}
+                    - {os-name: Windows-x86_64, goos: windows, goarch: amd64, ext: ".exe", zip: true}
+                    - {os-name: Linux-x86_64-musl, goos: linux, goarch: amd64, ext: "", zip: false}
+                    - {os-name: Linux-aarch64-musl, goos: linux, goarch: arm64, ext: "", zip: false}
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+            - run: go vet ./...
+            # CGO is off: the executable is static, so it runs on musl (Alpine) as well as on glibc
+            - name: Build
+              env:
+                  CGO_ENABLED: "0"
+                  GOOS: ${{ matrix.platform.goos }}
+                  GOARCH: ${{ matrix.platform.goarch }}
+              run: go build -trimpath -ldflags="-s -w" -o "gtts${{ matrix.platform.ext }}" .
+            # One archive per platform: the executable, the README and the files listed, in a folder of the same name; and
+            # the SHA-256 of the archive next to it.
+            - name: Package
+              run: |
+                  name="gtts-${{ matrix.platform.os-name }}"
+                  mkdir "$name"
+                  cp "gtts${{ matrix.platform.ext }}" "$name/"
+                  for f in README.md LICENSE example.env example.blocklist.json example.voice_settings.json; do [ -f "$f" ] && cp "$f" "$name/" || true; done
+                  [ -d docs ] && cp -r docs "$name/" || true
+                  if [ "${{ matrix.platform.zip }}" = "true" ]; then archive="$name.zip"; zip -qr "$archive" "$name"; else archive="$name.tar.gz"; tar czf "$archive" "$name"; fi
+                  sha256sum "$archive" > "$archive.sha256"
+                  echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: gtts-${{ matrix.platform.os-name }}
+                  path: |
+                      ${{ env.ARCHIVE }}
+                      ${{ env.ARCHIVE }}.sha256
+                  if-no-files-found: error
+
+    # After every platform has built (so that no two jobs race to create the same release).
+    release:
+        name: Release
+        needs: package
+        runs-on: ubuntu-24.04
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/download-artifact@v4
+              with:
+                  path: dist
+                  merge-multiple: true
+            - name: Move the latest tag
+              if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/v')
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  gh api -X PATCH "repos/${{ github.repository }}/git/refs/tags/latest" -f sha="${{ github.sha }}" -F force=true \
+                    || gh api -X POST "repos/${{ github.repository }}/git/refs" -f ref="refs/tags/latest" -f sha="${{ github.sha }}"
+            - name: Make the release
+              if: github.event_name != 'pull_request'
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || 'latest' }}
+                  target_commitish: ${{ github.sha }}
+                  prerelease: ${{ !(inputs.tag || startsWith(github.ref, 'refs/tags/v')) }}
+                  files: dist/*
+                  generate_release_notes: ${{ inputs.tag != '' || startsWith(github.ref, 'refs/tags/v') }}
+                  fail_on_unmatched_files: true
