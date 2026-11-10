@@ -4,12 +4,13 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 
 	gojson "github.com/goccy/go-json"
 )
 
 func GetInvite(inviteCode string) (string, error) {
-	resp, err := http.Get("https://discord-invite.naecqde.workers.dev/" + inviteCode)
+	resp, err := http.Get("https://discord-invite.naecqde.workers.dev/" + url.PathEscape(inviteCode))
 
 	if err != nil {
 		return "", err
