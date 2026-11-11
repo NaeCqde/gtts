@@ -48,24 +48,21 @@ jobs:
                   GOOS: ${{ matrix.platform.goos }}
                   GOARCH: ${{ matrix.platform.goarch }}
               run: go build -trimpath -ldflags="-s -w" -o "gtts${{ matrix.platform.ext }}" .
-            # One archive per platform: the executable, the README and the files listed, in a folder of the same name; and
-            # the SHA-256 of the archive next to it.
+            # One file per program and platform, uploaded as it is (no archive): <program>-<platform>[.exe], and its SHA-256 next to it.
+            # The license, the changes and the config templates are added once, by the release job.
             - name: Package
+              shell: bash
               run: |
-                  name="gtts-${{ matrix.platform.os-name }}"
-                  mkdir "$name"
-                  cp "gtts${{ matrix.platform.ext }}" "$name/"
-                  for f in README.md LICENSE example.env example.blocklist.json example.voice_settings.json; do [ -f "$f" ] && cp "$f" "$name/" || true; done
-                  [ -d docs ] && cp -r docs "$name/" || true
-                  if [ "${{ matrix.platform.zip }}" = "true" ]; then archive="$name.zip"; zip -qr "$archive" "$name"; else archive="$name.tar.gz"; tar czf "$archive" "$name"; fi
-                  sha256sum "$archive" > "$archive.sha256"
-                  echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
+                  mkdir out
+                  asset="gtts-${{ matrix.platform.os-name }}"
+                  exe="gtts${{ matrix.platform.ext }}"
+                  case "$exe" in *.exe) asset="$asset.exe" ;; esac
+                  cp "$exe" "out/$asset"
+                  (cd out && { sha256sum "$asset" 2>/dev/null || shasum -a 256 "$asset"; } > "$asset.sha256")
             - uses: actions/upload-artifact@v4
               with:
                   name: gtts-${{ matrix.platform.os-name }}
-                  path: |
-                      ${{ env.ARCHIVE }}
-                      ${{ env.ARCHIVE }}.sha256
+                  path: out/*
                   if-no-files-found: error
 
     # After every platform has built (so that no two jobs race to create the same release).
@@ -76,6 +73,7 @@ jobs:
         permissions:
             contents: write
         steps:
+            - uses: actions/checkout@v4
             - uses: actions/download-artifact@v4
               with:
                   path: dist
@@ -94,6 +92,14 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
               run: gh release delete latest --repo "${{ github.repository }}" --yes || true
+            # Next to the executables, once: the license and the files this repository has of Changes.md and config templates (a file name that starts with a dot cannot be a
+            # release asset, so .env is example.env).
+            - name: Add the files that are the same on every platform
+              run: |
+                  cp "LICENSE" "dist/LICENSE"
+                  cp "example.env" "dist/example.env"
+                  cp "example.blocklist.json" "dist/example.blocklist.json"
+                  cp "example.voice_settings.json" "dist/example.voice_settings.json"
             - name: Make the release
               if: github.event_name != 'pull_request'
               uses: softprops/action-gh-release@v2
