@@ -38,12 +38,12 @@ jobs:
             reuse: ${{ steps.find.outputs.reuse }}
         steps:
             - uses: actions/checkout@v4
-              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              if: github.event_name == 'push' && github.ref == 'refs/heads/master'
               with:
                   persist-credentials: false
             - name: Find the build of the pull request
               id: find
-              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              if: github.event_name == 'push' && github.ref == 'refs/heads/master'
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
@@ -126,7 +126,7 @@ jobs:
     sign:
         name: Sign the macOS files
         needs: [reuse, package]
-        if: ${{ !cancelled() && (needs.reuse.outputs.reuse == 'true' || needs.package.result == 'success') && github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
+        if: ${{ !cancelled() && (needs.reuse.outputs.reuse == 'true' || needs.package.result == 'success') && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
         runs-on: macos-latest
         environment: signing
         permissions:
@@ -217,8 +217,17 @@ jobs:
             - name: Use the signed macOS files
               if: needs.sign.result == 'success'
               run: cp signed/* dist/
+            # Nothing is released until the commit is in the default branch (master): a version tag or a run started by hand on any other
+            # commit stops here.
+            - name: The commit must be in master
+              if: ${{ github.event_name != 'push' || startsWith(github.ref, 'refs/tags/v') }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  status=$(gh api "repos/${{ github.repository }}/compare/master...${{ github.sha }}" --jq .status)
+                  case "$status" in identical|behind) ;; *) echo "::error::commit ${{ github.sha }} is not in master ($status): not released"; exit 1 ;; esac
             - name: Move the latest tag
-              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              if: github.event_name == 'push' && github.ref == 'refs/heads/master'
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
@@ -227,7 +236,7 @@ jobs:
             # The rolling release is made again by every push (the tag was moved just above): its date is the date of the push, and only the
             # files of this run are in it.
             - name: Remove the old rolling release
-              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              if: github.event_name == 'push' && github.ref == 'refs/heads/master'
               env:
                   GH_TOKEN: ${{ github.token }}
               run: gh release delete latest --repo "${{ github.repository }}" --yes || true
@@ -241,7 +250,7 @@ jobs:
                   cp "example.blocklist.json" "dist/example.blocklist.json"
                   cp "example.voice_settings.json" "dist/example.voice_settings.json"
             - name: Make the release
-              if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) || (github.event_name == 'workflow_dispatch' && inputs.tag != '') }}
+              if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) || (github.event_name == 'workflow_dispatch' && inputs.tag != '') }}
               uses: softprops/action-gh-release@v2
               with:
                   tag_name: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || 'latest' }}
