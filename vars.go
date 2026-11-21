@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 
 	gojson "github.com/goccy/go-json"
 	"github.com/joho/godotenv"
@@ -12,12 +13,34 @@ var (
 	BlockList     []string
 )
 
+// settingsPath is the path of a settings file: the one in the current directory; only when that does not exist, the one next
+// to the executable (the one that is found is the only one that is read). With neither, the current directory (where it is saved).
+func settingsPath(name string) string {
+	if _, err := os.Stat(name); err == nil {
+		return name
+	}
+
+	if exe, err := os.Executable(); err == nil {
+		if real, err := filepath.EvalSymlinks(exe); err == nil {
+			exe = real
+		}
+
+		beside := filepath.Join(filepath.Dir(exe), name)
+
+		if _, err := os.Stat(beside); err == nil {
+			return beside
+		}
+	}
+
+	return name
+}
+
 func LoadEnv() error {
-	return godotenv.Load()
+	return godotenv.Load(settingsPath(".env"))
 }
 
 func LoadVoiceSettings() error {
-	body, err := os.ReadFile("voice_settings.json")
+	body, err := os.ReadFile(settingsPath("voice_settings.json"))
 
 	if err != nil {
 		return err
@@ -33,11 +56,11 @@ func SaveVoiceSettings() error {
 		return err
 	}
 
-	return os.WriteFile("voice_settings.json", data, 0o600)
+	return os.WriteFile(settingsPath("voice_settings.json"), data, 0o600)
 }
 
 func LoadBlockList() error {
-	body, err := os.ReadFile("blocklist.json")
+	body, err := os.ReadFile(settingsPath("blocklist.json"))
 
 	if err != nil {
 		return err
