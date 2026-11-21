@@ -15,3 +15,7 @@ To build it yourself, use `go build`.
 ## Specification
 
 The rules of the behavior are in [docs/SPEC.md](docs/SPEC.md) (in Japanese).
+
+## Where the settings are read from
+
+`.env`、`voice_settings.json`、`blocklist.json`: the current directory is searched first. If the file is there, only that one is read; if not, the one in the directory of the executable is read.
